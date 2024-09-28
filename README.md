@@ -24,7 +24,7 @@ Ensure you have the following installed on your machine:
 3. Create a `.env` file with the following contents:
     ```bash
     BOT_TOKEN=your_telegram_bot_token
-    API_URL=your_database_url
+    API_URL=your_api_url
     ```
 
 4. Run the bot:
