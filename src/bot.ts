@@ -19,25 +19,26 @@ bot.command("createnote", async (ctx) => {
     memoData[ctx.chat.id] = { step: "choose_type" };
 });
 
-bot.callbackQuery("service_note", async (ctx) => {
-    memoData[ctx.chat.id].type = "Службова записка";
+bot.command("notelist", async (ctx) => {
+    await ctx.reply(memoData.toString());
+});
+
+bot.callbackQuery("service_memo", async (ctx) => {
+    memoData[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
     memoData[ctx.chat.id].step = "recipient";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery("submission", async (ctx) => {
-    memoData[ctx.chat.id].type = "Подання";
+    memoData[ctx.chat.id].type = "ПОДАННЯ";
     memoData[ctx.chat.id].step = "recipient";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
-    memoData[ctx.chat.id].type = "Звернення";
+    memoData[ctx.chat.id].type = "ЗВЕРНЕННЯ";
     memoData[ctx.chat.id].step = "recipient";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
 });
 
 bot.on("message:text", async (ctx) => {
@@ -57,7 +58,7 @@ bot.on("message:text", async (ctx) => {
 
         try {
             const response = await axios.post(
-                "https://sr-kpi-api-development.up.railway.app/documents/service-note",
+                "https://sr-kpi-api-development.up.railway.app/documents/note",
                 {
                     receiver: recipient,
                     title: subject,
@@ -74,8 +75,8 @@ bot.on("message:text", async (ctx) => {
 
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
-            await ctx.reply(error);
             await ctx.reply("Помилка при створенні запису");
+            await ctx.reply(error);
         }
     }
 
@@ -100,3 +101,5 @@ bot.on("message:text", async (ctx) => {
             break;
     }
 });
+
+bot.start()
