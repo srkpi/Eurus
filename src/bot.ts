@@ -4,6 +4,8 @@ import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 const { BOT_TOKEN: token = "" } = process.env;
 export const bot = new Bot(token);
 
+let isGetFile = false;
+
 //сховище для стоврення записки
 const memoData = {};
 
@@ -33,6 +35,11 @@ bot.command("notelist", async (ctx) => {
         await ctx.reply("Помилка при отриманні записів");
         await ctx.reply(error);
     }
+});
+
+bot.command("getfile", async (ctx) => {
+    isGetFile = true;
+    await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
@@ -88,6 +95,20 @@ bot.on("message:text", async (ctx) => {
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
             await ctx.reply("Помилка при створенні запису");
+            await ctx.reply(error);
+        }
+    }
+
+    if (isGetFile) {
+        try {
+            const response = await axios.get(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`, { responseType: "arraybuffer", })
+
+            const contentDisposition = response.headers["content-disposition"];
+            const filename = decodeFilename(contentDisposition);
+
+            await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+        } catch (error) {
+            await ctx.reply("Помилка при отриманні запису");
             await ctx.reply(error);
         }
     }
