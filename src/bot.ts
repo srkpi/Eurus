@@ -5,6 +5,7 @@ const { BOT_TOKEN: token = "" } = process.env;
 export const bot = new Bot(token);
 
 let isGetFile = false;
+let isDeleteNote = false;
 
 //сховище для стоврення записки
 const memoData = {};
@@ -40,6 +41,11 @@ bot.command("notelist", async (ctx) => {
 bot.command("getfile", async (ctx) => {
     isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
+});
+
+bot.command("deletenote", async (ctx) => {
+    isDeleteNote = true;
+    await ctx.reply("Введіть id файлу який ви хочете видалити:");
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
@@ -111,6 +117,18 @@ bot.on("message:text", async (ctx) => {
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
             await ctx.reply("Помилка при отриманні запису");
+        }
+    }
+
+    if (isDeleteNote) {
+        isDeleteNote = false;
+
+        try {
+            await axios.delete(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`);
+
+            await ctx.reply(`Файл №${text} було успішно видалено`);
+        } catch (error) {
+            await ctx.reply("Помилка при видаленні запису");
         }
     }
 
