@@ -20,7 +20,20 @@ bot.command("createnote", async (ctx) => {
 });
 
 bot.command("notelist", async (ctx) => {
-    await ctx.reply(memoData.toString());
+    try {
+        const response = await axios.get("https://sr-kpi-api-development.up.railway.app/documents/notes").then((response) => {
+            const formattedData = response.data
+                .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
+                .join("\n");
+
+            ctx.reply(`${formattedData}`, {
+                parse_mode: "MarkdownV2",
+            });
+        });
+    } catch (error) {
+        await ctx.reply("Помилка при отриманні записів");
+        await ctx.reply(error);
+    }
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
