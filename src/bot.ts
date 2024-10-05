@@ -111,6 +111,8 @@ bot.on("message:text", async (ctx) => {
             await ctx.reply("Помилка при отриманні запису");
             await ctx.reply(error);
         }
+
+        isGetFile = false;
     }
 
     if (!memoData[chatId]) return;
