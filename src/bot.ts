@@ -138,5 +138,3 @@ bot.on("message:text", async (ctx) => {
 bot.catch((err) => {
     console.error(`Error: ${err.error}`);
 });
-
-bot.start();
