@@ -100,6 +100,8 @@ bot.on("message:text", async (ctx) => {
     }
 
     if (isGetFile) {
+        isGetFile = false;
+
         try {
             const response = await axios.get(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`, { responseType: "arraybuffer", })
 
@@ -109,10 +111,7 @@ bot.on("message:text", async (ctx) => {
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
             await ctx.reply("Помилка при отриманні запису");
-            await ctx.reply(error);
         }
-
-        isGetFile = false;
     }
 
     if (!memoData[chatId]) return;
