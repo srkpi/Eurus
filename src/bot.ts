@@ -12,10 +12,16 @@ const memoData = {};
 
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createnote ");
 });
 
 bot.command("createnote", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
 
     await ctx.reply("Будь ласка, виберіть тип документу:", { reply_markup: keyboard });
@@ -23,6 +29,9 @@ bot.command("createnote", async (ctx) => {
 });
 
 bot.command("notelist", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+
     try {
         const response = await axios.get("https://sr-kpi-api-development.up.railway.app/documents/notes");
         const formattedData = response.data
@@ -39,11 +48,15 @@ bot.command("notelist", async (ctx) => {
 });
 
 bot.command("getfile", async (ctx) => {
+    isDeleteNote = false;
+
     isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
 bot.command("deletenote", async (ctx) => {
+    isGetFile = false;
+
     isDeleteNote = true;
     await ctx.reply("Введіть id файлу який ви хочете видалити:");
 });
@@ -109,7 +122,7 @@ bot.on("message:text", async (ctx) => {
         isGetFile = false;
 
         try {
-            const response = await axios.get(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`, { responseType: "arraybuffer", })
+            const response = await axios.get(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`, { responseType: "arraybuffer" });
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
