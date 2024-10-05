@@ -34,13 +34,18 @@ bot.command("notelist", async (ctx) => {
 
     try {
         const response = await axios.get("https://sr-kpi-api-development.up.railway.app/documents/notes");
-        const formattedData = response.data
-            .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
-            .join("\n");
 
-        await ctx.reply(`${formattedData}`, {
-            parse_mode: "MarkdownV2",
-        });
+        if (Array.isArray(response.data) && response.data.length === 0) {
+            await ctx.reply("Записів нема");
+        } else {
+            const formattedData = response.data
+                .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
+                .join("\n");
+
+            await ctx.reply(`${formattedData}`, {
+                parse_mode: "MarkdownV2",
+            });
+        }
     } catch (error) {
         await ctx.reply("Помилка при отриманні записів");
         await ctx.reply(error);
