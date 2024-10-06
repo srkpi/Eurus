@@ -14,6 +14,10 @@ const memoData = {};
 // id для зміни файлу
 let editFileId = 0;
 
+const instance = axios.create({
+    baseURL: "https://sr-kpi-api-development.up.railway.app",
+});
+
 function decodeFilename(contentDisposition) {
     const match = contentDisposition.match(/filename\*?=['"]?([^;]*)['"]?/);
     if (match && match[1]) {
@@ -51,7 +55,7 @@ bot.command("notelist", async (ctx) => {
     delete memoData[ctx.chat.id];
 
     try {
-        const response = await axios.get("https://sr-kpi-api-development.up.railway.app/documents/notes");
+        const response = await instance.get("/documents/notes");
 
         if (Array.isArray(response.data) && response.data.length === 0) {
             await ctx.reply("Записів нема");
@@ -127,8 +131,8 @@ bot.callbackQuery("type", async (ctx) => {
 
 bot.callbackQuery("newServiceMemo", async (ctx) => {
     try {
-        const response = await axios.patch(
-            "https://sr-kpi-api-development.up.railway.app/documents/note",
+        const response = await instance.patch(
+            "/documents/note",
             {
                 id: editFileId,
                 type: "СЛУЖБОВА ЗАПИСКА",
@@ -151,8 +155,8 @@ bot.callbackQuery("newServiceMemo", async (ctx) => {
 
 bot.callbackQuery("newSubmission", async (ctx) => {
     try {
-        const response = await axios.patch(
-            "https://sr-kpi-api-development.up.railway.app/documents/note",
+        const response = await instance.patch(
+            "/documents/note",
             {
                 id: editFileId,
                 type: "ПОДАННЯ",
@@ -175,8 +179,8 @@ bot.callbackQuery("newSubmission", async (ctx) => {
 
 bot.callbackQuery("newAppeal", async (ctx) => {
     try {
-        const response = await axios.patch(
-            "https://sr-kpi-api-development.up.railway.app/documents/note",
+        const response = await instance.patch(
+            "/documents/note",
             {
                 id: editFileId,
                 type: "ЗВЕРНЕННЯ",
@@ -220,8 +224,8 @@ bot.on("message:text", async (ctx) => {
         const { recipient, subject, text, type } = memoData[chatId];
 
         try {
-            const response = await axios.post(
-                "https://sr-kpi-api-development.up.railway.app/documents/note",
+            const response = await instance.post(
+                "/documents/note",
                 {
                     receiver: recipient,
                     title: subject,
@@ -247,7 +251,7 @@ bot.on("message:text", async (ctx) => {
         isGetFile = false;
 
         try {
-            const response = await axios.get(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`, { responseType: "arraybuffer" });
+            const response = await instance.get(`/documents/note/${text}`, { responseType: "arraybuffer" });
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
@@ -272,7 +276,7 @@ bot.on("message:text", async (ctx) => {
         isDeleteNote = false;
 
         try {
-            await axios.delete(`https://sr-kpi-api-development.up.railway.app/documents/note/${text}`);
+            await instance.delete(`/documents/note/${text}`);
 
             await ctx.reply(`Файл №${text} було успішно видалено`);
         } catch (error) {
@@ -302,8 +306,8 @@ bot.on("message:text", async (ctx) => {
         case "newReceiver":
             delete memoData[ctx.chat.id];
             try {
-                const response = await axios.patch(
-                    "https://sr-kpi-api-development.up.railway.app/documents/note",
+                const response = await instance.patch(
+                    "/documents/note",
                     {
                         id: editFileId,
                         receiver: text,
@@ -327,8 +331,8 @@ bot.on("message:text", async (ctx) => {
         case "newTitle":
             delete memoData[ctx.chat.id];
             try {
-                const response = await axios.patch(
-                    "https://sr-kpi-api-development.up.railway.app/documents/note",
+                const response = await instance.patch(
+                    "/documents/note",
                     {
                         id: editFileId,
                         title: text,
@@ -352,8 +356,8 @@ bot.on("message:text", async (ctx) => {
         case "newContent":
             delete memoData[ctx.chat.id];
             try {
-                const response = await axios.patch(
-                    "https://sr-kpi-api-development.up.railway.app/documents/note",
+                const response = await instance.patch(
+                    "/documents/note",
                     {
                         id: editFileId,
                         content: text,
