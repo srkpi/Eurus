@@ -125,7 +125,11 @@ bot.callbackQuery("back", async (ctx) => {
 });
 
 bot.callbackQuery("type", async (ctx) => {
-    const keyboard = new InlineKeyboard().text("Службова записка", "newServiceMemo").text("Подання", "newSubmission").text("Звернення", "newAppeal").text("Повернутись", "back");
+    const keyboard = new InlineKeyboard()
+        .text("Службова записка", "newServiceMemo")
+        .text("Подання", "newSubmission")
+        .text("Звернення", "newAppeal")
+        .text("Повернутись", "back");
     await ctx.reply("Оберіть новий тип документу:", { reply_markup: keyboard });
 });
 
