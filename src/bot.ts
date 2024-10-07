@@ -40,7 +40,7 @@ bot.command("start", async (ctx) => {
     isEditFile = false;
     delete memoData[ctx.chat.id];
 
-    await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /create_file");
+    await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createfile");
 });
 
 bot.command("help", async (ctx) => {
