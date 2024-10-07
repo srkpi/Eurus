@@ -35,3 +35,11 @@ export async function updateDocumentRequest(id, updateData) {
         throw new Error("Error updating document");
     }
 }
+
+export async function deleteDocumentRequest(id) {
+    try {
+        return await api.delete(`/documents/note/${id}`);
+    } catch (error) {
+        throw new Error("Error deleting document");
+    }
+}

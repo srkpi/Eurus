@@ -1,4 +1,4 @@
-import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest } from "../api/api";
+import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest, deleteDocumentRequest } from "../api/api";
 import { decodeFilename, formatFilesList, changeFileType, changeFileProperties } from "../utils/utils";
 import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 
@@ -6,8 +6,8 @@ const { BOT_TOKEN: token = "" } = process.env;
 export const bot = new Bot(token);
 
 let isGetFile = false;
-let isDeleteNote = false;
-let isEditNote = false;
+let isDeleteFile = false;
+let isEditFile = false;
 
 //сховище для стоврення та зміни записки
 const memoData = {};
@@ -18,17 +18,17 @@ let editFileId = 0;
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
     isGetFile = false;
-    isDeleteNote = false;
-    isEditNote = false;
+    isDeleteFile = false;
+    isEditFile = false;
     delete memoData[ctx.chat.id];
 
-    await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createnote ");
+    await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /create_file");
 });
 
-bot.command("createnote", async (ctx) => {
+bot.command("createfile", async (ctx) => {
     isGetFile = false;
-    isDeleteNote = false;
-    isEditNote = false;
+    isDeleteFile = false;
+    isEditFile = false;
     delete memoData[ctx.chat.id];
 
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
@@ -37,10 +37,10 @@ bot.command("createnote", async (ctx) => {
     memoData[ctx.chat.id] = { step: "choose_type" };
 });
 
-bot.command("notelist", async (ctx) => {
+bot.command("listfiles", async (ctx) => {
     isGetFile = false;
-    isDeleteNote = false;
-    isEditNote = false;
+    isDeleteFile = false;
+    isEditFile = false;
     delete memoData[ctx.chat.id];
 
     try {
@@ -63,29 +63,29 @@ bot.command("notelist", async (ctx) => {
 });
 
 bot.command("getfile", async (ctx) => {
-    isDeleteNote = false;
-    isEditNote = false;
+    isDeleteFile = false;
+    isEditFile = false;
     delete memoData[ctx.chat.id];
 
     isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
-bot.command("editnote", async (ctx) => {
+bot.command("editfile", async (ctx) => {
     isGetFile = false;
-    isDeleteNote = false;
+    isDeleteFile = false;
     delete memoData[ctx.chat.id];
 
-    isEditNote = true;
+    isEditFile = true;
     await ctx.reply("Введіть id файлу який ви хочете змінити:");
 });
 
-bot.command("deletenote", async (ctx) => {
+bot.command("deletefile", async (ctx) => {
     isGetFile = false;
-    isEditNote = false;
+    isEditFile = false;
     delete memoData[ctx.chat.id];
 
-    isDeleteNote = true;
+    isDeleteFile = true;
     await ctx.reply("Введіть id файлу який ви хочете видалити:");
 });
 
@@ -210,8 +210,8 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (isEditNote) {
-        isEditNote = false;
+    if (isEditFile) {
+        isEditFile = false;
 
         editFileId = parseInt(text);
 
@@ -230,7 +230,7 @@ bot.on("message:text", async (ctx) => {
                         parse_mode: "MarkdownV2",
                     });
 
-                    isEditNote = true;
+                    isEditFile = true;
                     return;
                 }
             }
@@ -243,11 +243,11 @@ bot.on("message:text", async (ctx) => {
         await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
     }
 
-    if (isDeleteNote) {
-        isDeleteNote = false;
+    if (isDeleteFile) {
+        isDeleteFile = false;
 
         try {
-            await api.delete(`/documents/note/${text}`);
+            await deleteDocumentRequest(text);
 
             await ctx.reply(`Файл №${text} було успішно видалено`);
         } catch (error) {
