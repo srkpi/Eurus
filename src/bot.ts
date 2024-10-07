@@ -15,6 +15,16 @@ const memoData = {};
 // id для зміни файлу
 let editFileId = 0;
 
+bot.api.setMyCommands([
+    { command: "start", description: "Перезапустити бота" },
+    { command: "help", description: "Переглянути список команд" },
+    { command: "createfile", description: "Створити файл" },
+    { command: "listfiles", description: "Переглянути всі файли" },
+    { command: "getfile", description: "Завантажити файл" },
+    { command: "editfile", description: "Змінити файл" },
+    { command: "deletefile", description: "Видалити файл" },
+]);
+
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
     isGetFile = false;
@@ -23,6 +33,18 @@ bot.command("start", async (ctx) => {
     delete memoData[ctx.chat.id];
 
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /create_file");
+});
+
+bot.command("help", async (ctx) => {
+    await ctx.reply(
+        "/start - Перезапустити бота\n" +
+            "/help - Переглянути список команд\n" +
+            "/createfile - Створити файл\n" +
+            "/listfiles - Переглянути всі файли\n" +
+            "/getfile - Завантажити файл\n" +
+            "/editfile - Змінити файл\n" +
+            "/deletefile - Видалити файл",
+    );
 });
 
 bot.command("createfile", async (ctx) => {
