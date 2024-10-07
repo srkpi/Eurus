@@ -25,7 +25,7 @@ bot.command("start", async (ctx) => {
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /create_file");
 });
 
-bot.command("create_file", async (ctx) => {
+bot.command("createfile", async (ctx) => {
     isGetFile = false;
     isDeleteFile = false;
     isEditFile = false;
@@ -37,7 +37,7 @@ bot.command("create_file", async (ctx) => {
     memoData[ctx.chat.id] = { step: "choose_type" };
 });
 
-bot.command("list_files", async (ctx) => {
+bot.command("listfiles", async (ctx) => {
     isGetFile = false;
     isDeleteFile = false;
     isEditFile = false;
@@ -62,7 +62,7 @@ bot.command("list_files", async (ctx) => {
     }
 });
 
-bot.command("get_file", async (ctx) => {
+bot.command("getfile", async (ctx) => {
     isDeleteFile = false;
     isEditFile = false;
     delete memoData[ctx.chat.id];
@@ -71,7 +71,7 @@ bot.command("get_file", async (ctx) => {
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
-bot.command("edit_file", async (ctx) => {
+bot.command("editfile", async (ctx) => {
     isGetFile = false;
     isDeleteFile = false;
     delete memoData[ctx.chat.id];
@@ -80,7 +80,7 @@ bot.command("edit_file", async (ctx) => {
     await ctx.reply("Введіть id файлу який ви хочете змінити:");
 });
 
-bot.command("delete_file", async (ctx) => {
+bot.command("deletefile", async (ctx) => {
     isGetFile = false;
     isEditFile = false;
     delete memoData[ctx.chat.id];
