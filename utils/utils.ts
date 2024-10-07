@@ -40,16 +40,20 @@ export async function changeFileProperties(fileId, newProperties) {
         stringToReply: undefined,
     };
 
-    if (newProperties.receiver) {
-        objectToReturn.stringToReply = `Одержувача було змінено на «${newProperties.receiver}»:`;
+    const receiver = newProperties.receiver;
+    const title = newProperties.title;
+    const content = newProperties.content;
+
+    if (receiver) {
+        objectToReturn.stringToReply = `Одержувача було змінено на «${receiver}»:`;
     }
 
-    if (newProperties.title) {
-        objectToReturn.stringToReply = `Назву було змінено на «${newProperties.title}»:`;
+    if (title) {
+        objectToReturn.stringToReply = `Назву було змінено на «${title}»:`;
     }
 
-    if (newProperties.content) {
-        objectToReturn.stringToReply = `Текст було змінено на «${newProperties.content}»:`;
+    if (content) {
+        objectToReturn.stringToReply = `Текст було змінено на «${content}»:`;
     }
 
     return objectToReturn;
