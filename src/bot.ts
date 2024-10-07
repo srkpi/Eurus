@@ -1,4 +1,4 @@
-import { api } from "../api/api";
+import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest, updateDocumentRequest } from "../api/api";
 import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 
 const { BOT_TOKEN: token = "" } = process.env;
@@ -24,38 +24,6 @@ function decodeFilename(contentDisposition) {
 
 function formatFilesList(data) {
     return data.map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``).join("\n");
-}
-
-async function fetchAllDocumentsRequest() {
-    try {
-        return await api.get(`/documents/notes`);
-    } catch (error) {
-        throw new Error("Error fetching documents");
-    }
-}
-
-async function fetchDocumentByIdRequest(id) {
-    try {
-        return await api.get(`/documents/note/${id}`, { responseType: "arraybuffer" });
-    } catch (error) {
-        throw new Error("Error fetching documents");
-    }
-}
-
-async function createDocumentRequest(data) {
-    try {
-        return await api.post(`/documents/note`, { ...data }, { responseType: "arraybuffer" });
-    } catch (error) {
-        throw new Error("Error creating document");
-    }
-}
-
-async function updateDocumentRequest(id, updateData) {
-    try {
-        return await api.patch(`/documents/note`, { id, ...updateData }, { responseType: "arraybuffer" });
-    } catch (error) {
-        throw new Error("Error updating document");
-    }
 }
 
 // команда для Вітаннячка
