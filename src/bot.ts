@@ -270,7 +270,34 @@ bot.on("message:text", async (ctx) => {
         isEditNote = false;
 
         editFileId = parseInt(text);
-        // TODO: Check if there is file with such id
+
+        // Check if there is file with such id
+        try {
+            const response = await instance.get("/documents/notes");
+
+            if (Array.isArray(response.data) && response.data.length === 0) {
+                await ctx.reply("Записів нема");
+            } else {
+                const data = response.data;
+
+                if (data.some((item) => item.id != text)) {
+                    const formattedData = data
+                        .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
+                        .join("\n");
+
+                    await ctx.reply(`Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:\n${formattedData}`, {
+                        parse_mode: "MarkdownV2",
+                    });
+
+                    isEditNote = true;
+                    return;
+                }
+                console.log(data);
+            }
+        } catch (error) {
+            await ctx.reply("Помилка при перевірці id");
+            await ctx.reply(error);
+        }
 
         const keyboard = new InlineKeyboard().text("Тип файлу", "type").text("Одержувача", "receiver").text("Назву", "title").text("Текст", "content");
         await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
