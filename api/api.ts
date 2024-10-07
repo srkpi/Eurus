@@ -16,7 +16,7 @@ export async function fetchDocumentByIdRequest(id) {
     try {
         return await api.get(`/documents/note/${id}`, { responseType: "arraybuffer" });
     } catch (error) {
-        throw new Error("Error fetching documents");
+        throw new Error("Error fetching document by id");
     }
 }
 
