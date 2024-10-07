@@ -280,7 +280,7 @@ bot.on("message:text", async (ctx) => {
             } else {
                 const data = response.data;
 
-                if (data.some((item) => item.id != text)) {
+                if (!data.some((item) => item.id == text)) {
                     const formattedData = data
                         .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
                         .join("\n");
