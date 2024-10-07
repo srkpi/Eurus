@@ -26,6 +26,10 @@ function decodeFilename(contentDisposition) {
     return "unknown_filename";
 }
 
+function formatFilesList(data) {
+    return data.map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``).join("\n");
+}
+
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
     isGetFile = false;
@@ -60,9 +64,7 @@ bot.command("notelist", async (ctx) => {
         if (Array.isArray(response.data) && response.data.length === 0) {
             await ctx.reply("Записів нема");
         } else {
-            const formattedData = response.data
-                .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
-                .join("\n");
+            const formattedData = formatFilesList(response.data);
 
             await ctx.reply(`${formattedData}`, {
                 parse_mode: "MarkdownV2",
@@ -281,9 +283,7 @@ bot.on("message:text", async (ctx) => {
                 const data = response.data;
 
                 if (!data.some((item) => item.id == text)) {
-                    const formattedData = data
-                        .map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``)
-                        .join("\n");
+                    const formattedData = formatFilesList(data);
 
                     await ctx.reply(`Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:\n${formattedData}`, {
                         parse_mode: "MarkdownV2",
