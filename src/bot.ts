@@ -26,6 +26,38 @@ function formatFilesList(data) {
     return data.map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``).join("\n");
 }
 
+async function fetchAllDocumentsRequest() {
+    try {
+        return await api.get(`/documents/notes`);
+    } catch (error) {
+        throw new Error("Error fetching documents");
+    }
+}
+
+async function fetchDocumentByIdRequest(id) {
+    try {
+        return await api.get(`/documents/note/${id}`, { responseType: "arraybuffer" });
+    } catch (error) {
+        throw new Error("Error fetching documents");
+    }
+}
+
+async function createDocumentRequest(data) {
+    try {
+        return await api.post(`/documents/note`, { ...data }, { responseType: "arraybuffer" });
+    } catch (error) {
+        throw new Error("Error creating document");
+    }
+}
+
+async function updateDocumentRequest(id, updateData) {
+    try {
+        return await api.patch(`/documents/note`, { id, ...updateData }, { responseType: "arraybuffer" });
+    } catch (error) {
+        throw new Error("Error updating document");
+    }
+}
+
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
     isGetFile = false;
@@ -55,7 +87,7 @@ bot.command("notelist", async (ctx) => {
     delete memoData[ctx.chat.id];
 
     try {
-        const response = await api.get("/documents/notes");
+        const response = await fetchAllDocumentsRequest();
 
         if (Array.isArray(response.data) && response.data.length === 0) {
             await ctx.reply("Записів нема");
@@ -133,16 +165,7 @@ bot.callbackQuery("type", async (ctx) => {
 
 bot.callbackQuery("newServiceMemo", async (ctx) => {
     try {
-        const response = await api.patch(
-            "/documents/note",
-            {
-                id: editFileId,
-                type: "СЛУЖБОВА ЗАПИСКА",
-            },
-            {
-                responseType: "arraybuffer",
-            },
-        );
+        const response = await updateDocumentRequest(editFileId, { type: "СЛУЖБОВА ЗАПИСКА" });
 
         const contentDisposition = response.headers["content-disposition"];
         const filename = decodeFilename(contentDisposition);
@@ -157,16 +180,7 @@ bot.callbackQuery("newServiceMemo", async (ctx) => {
 
 bot.callbackQuery("newSubmission", async (ctx) => {
     try {
-        const response = await api.patch(
-            "/documents/note",
-            {
-                id: editFileId,
-                type: "ПОДАННЯ",
-            },
-            {
-                responseType: "arraybuffer",
-            },
-        );
+        const response = await updateDocumentRequest(editFileId, { type: "ПОДАННЯ" });
 
         const contentDisposition = response.headers["content-disposition"];
         const filename = decodeFilename(contentDisposition);
@@ -181,16 +195,7 @@ bot.callbackQuery("newSubmission", async (ctx) => {
 
 bot.callbackQuery("newAppeal", async (ctx) => {
     try {
-        const response = await api.patch(
-            "/documents/note",
-            {
-                id: editFileId,
-                type: "ЗВЕРНЕННЯ",
-            },
-            {
-                responseType: "arraybuffer",
-            },
-        );
+        const response = await updateDocumentRequest(editFileId, { type: "ЗВЕРНЕННЯ" });
 
         const contentDisposition = response.headers["content-disposition"];
         const filename = decodeFilename(contentDisposition);
@@ -226,18 +231,7 @@ bot.on("message:text", async (ctx) => {
         const { recipient, subject, text, type } = memoData[chatId];
 
         try {
-            const response = await api.post(
-                "/documents/note",
-                {
-                    receiver: recipient,
-                    title: subject,
-                    content: text,
-                    type: type,
-                },
-                {
-                    responseType: "arraybuffer",
-                },
-            );
+            const response = await createDocumentRequest({ receiver: recipient, title: subject, content: text, type: type });
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
@@ -253,7 +247,7 @@ bot.on("message:text", async (ctx) => {
         isGetFile = false;
 
         try {
-            const response = await api.get(`/documents/note/${text}`, { responseType: "arraybuffer" });
+            const response = await fetchDocumentByIdRequest(text);
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
@@ -271,7 +265,7 @@ bot.on("message:text", async (ctx) => {
 
         // Check if there is file with such id
         try {
-            const response = await api.get("/documents/notes");
+            const response = await fetchAllDocumentsRequest();
 
             if (Array.isArray(response.data) && response.data.length === 0) {
                 await ctx.reply("Записів нема");
@@ -333,16 +327,7 @@ bot.on("message:text", async (ctx) => {
         case "newReceiver":
             delete memoData[ctx.chat.id];
             try {
-                const response = await api.patch(
-                    "/documents/note",
-                    {
-                        id: editFileId,
-                        receiver: text,
-                    },
-                    {
-                        responseType: "arraybuffer",
-                    },
-                );
+                const response = await updateDocumentRequest(editFileId, { receiver: text });
 
                 const contentDisposition = response.headers["content-disposition"];
                 const filename = decodeFilename(contentDisposition);
@@ -358,16 +343,7 @@ bot.on("message:text", async (ctx) => {
         case "newTitle":
             delete memoData[ctx.chat.id];
             try {
-                const response = await api.patch(
-                    "/documents/note",
-                    {
-                        id: editFileId,
-                        title: text,
-                    },
-                    {
-                        responseType: "arraybuffer",
-                    },
-                );
+                const response = await updateDocumentRequest(editFileId, { title: text });
 
                 const contentDisposition = response.headers["content-disposition"];
                 const filename = decodeFilename(contentDisposition);
@@ -383,16 +359,7 @@ bot.on("message:text", async (ctx) => {
         case "newContent":
             delete memoData[ctx.chat.id];
             try {
-                const response = await api.patch(
-                    "/documents/note",
-                    {
-                        id: editFileId,
-                        content: text,
-                    },
-                    {
-                        responseType: "arraybuffer",
-                    },
-                );
+                const response = await updateDocumentRequest(editFileId, { content: text });
 
                 const contentDisposition = response.headers["content-disposition"];
                 const filename = decodeFilename(contentDisposition);
