@@ -1,4 +1,5 @@
-import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest, updateDocumentRequest } from "../api/api";
+import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest } from "../api/api";
+import { decodeFilename, formatFilesList, changeFileType, changeFileProperties } from "../utils/utils";
 import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 
 const { BOT_TOKEN: token = "" } = process.env;
@@ -13,18 +14,6 @@ const memoData = {};
 
 // id для зміни файлу
 let editFileId = 0;
-
-function decodeFilename(contentDisposition) {
-    const match = contentDisposition.match(/filename\*?=['"]?([^;]*)['"]?/);
-    if (match && match[1]) {
-        return decodeURIComponent(match[1].replace(/UTF-8''/, ""));
-    }
-    return "unknown_filename";
-}
-
-function formatFilesList(data) {
-    return data.map((item, index) => `${index + 1}\\) ${item.name.replaceAll(".", "\\.").replaceAll("_", "\\_")} \\- \`${item.id}\``).join("\n");
-}
 
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
@@ -56,11 +45,12 @@ bot.command("notelist", async (ctx) => {
 
     try {
         const response = await fetchAllDocumentsRequest();
+        const responseData = response.data;
 
-        if (Array.isArray(response.data) && response.data.length === 0) {
+        if (Array.isArray(responseData) && responseData.length === 0) {
             await ctx.reply("Записів нема");
         } else {
-            const formattedData = formatFilesList(response.data);
+            const formattedData = formatFilesList(responseData);
 
             await ctx.reply(`${formattedData}`, {
                 parse_mode: "MarkdownV2",
@@ -101,19 +91,19 @@ bot.command("deletenote", async (ctx) => {
 
 bot.callbackQuery("service_memo", async (ctx) => {
     memoData[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
-    memoData[ctx.chat.id].step = "recipient";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("submission", async (ctx) => {
     memoData[ctx.chat.id].type = "ПОДАННЯ";
-    memoData[ctx.chat.id].step = "recipient";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
     memoData[ctx.chat.id].type = "ЗВЕРНЕННЯ";
-    memoData[ctx.chat.id].step = "recipient";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
@@ -132,46 +122,40 @@ bot.callbackQuery("type", async (ctx) => {
 });
 
 bot.callbackQuery("newServiceMemo", async (ctx) => {
+    const serviceMemoString = "Службова записка";
     try {
-        const response = await updateDocumentRequest(editFileId, { type: "СЛУЖБОВА ЗАПИСКА" });
+        const { stringToReply, inputFile } = await changeFileType(editFileId, serviceMemoString);
 
-        const contentDisposition = response.headers["content-disposition"];
-        const filename = decodeFilename(contentDisposition);
-
-        await ctx.reply("Тип файлу було змінено на «Службова записка»:");
-        await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply("Помилка при зміні типу файлу на «Службова записка»");
+        await ctx.reply(`Помилка при зміні типу файлу на «${serviceMemoString}»`);
         await ctx.reply(error);
     }
 });
 
 bot.callbackQuery("newSubmission", async (ctx) => {
+    const submissionString = "Подання";
     try {
-        const response = await updateDocumentRequest(editFileId, { type: "ПОДАННЯ" });
+        const { stringToReply, inputFile } = await changeFileType(editFileId, submissionString);
 
-        const contentDisposition = response.headers["content-disposition"];
-        const filename = decodeFilename(contentDisposition);
-
-        await ctx.reply("Тип файлу було змінено на «Подання»:");
-        await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply("Помилка при зміні типу файлу на «Подання»");
+        await ctx.reply(`Помилка при зміні типу файлу на «${submissionString}»`);
         await ctx.reply(error);
     }
 });
 
 bot.callbackQuery("newAppeal", async (ctx) => {
+    const appealString = "Звернення";
     try {
-        const response = await updateDocumentRequest(editFileId, { type: "ЗВЕРНЕННЯ" });
+        const { stringToReply, inputFile } = await changeFileType(editFileId, appealString);
 
-        const contentDisposition = response.headers["content-disposition"];
-        const filename = decodeFilename(contentDisposition);
-
-        await ctx.reply("Тип файлу було змінено на «Звернення»:");
-        await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply("Помилка при зміні типу файлу на «Звернення»");
+        await ctx.reply(`Помилка при зміні типу файлу на «${appealString}»`);
         await ctx.reply(error);
     }
 });
@@ -196,10 +180,10 @@ bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
 
     async function createDocument(chatId, ctx: Context) {
-        const { recipient, subject, text, type } = memoData[chatId];
+        const { receiver, title, content, type } = memoData[chatId];
 
         try {
-            const response = await createDocumentRequest({ receiver: recipient, title: subject, content: text, type: type });
+            const response = await createDocumentRequest({ receiver: receiver, title: title, content: content, type: type });
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
@@ -234,14 +218,13 @@ bot.on("message:text", async (ctx) => {
         // Check if there is file with such id
         try {
             const response = await fetchAllDocumentsRequest();
+            const responseData = response.data;
 
-            if (Array.isArray(response.data) && response.data.length === 0) {
+            if (Array.isArray(responseData) && responseData.length === 0) {
                 await ctx.reply("Записів нема");
             } else {
-                const data = response.data;
-
-                if (!data.some((item) => item.id == text)) {
-                    const formattedData = formatFilesList(data);
+                if (!responseData.some((item) => item.id == text)) {
+                    const formattedData = formatFilesList(responseData);
 
                     await ctx.reply(`Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:\n${formattedData}`, {
                         parse_mode: "MarkdownV2",
@@ -250,7 +233,6 @@ bot.on("message:text", async (ctx) => {
                     isEditNote = true;
                     return;
                 }
-                console.log(data);
             }
         } catch (error) {
             await ctx.reply("Помилка при перевірці id");
@@ -276,18 +258,18 @@ bot.on("message:text", async (ctx) => {
     if (!memoData[chatId]) return;
 
     switch (memoData[chatId].step) {
-        case "recipient":
-            memoData[chatId].recipient = text;
-            memoData[chatId].step = "subject";
+        case "receiver":
+            memoData[chatId].receiver = text;
+            memoData[chatId].step = "title";
             await ctx.reply("Введіть тему записки:");
             break;
-        case "subject":
-            memoData[chatId].subject = text;
-            memoData[chatId].step = "text";
+        case "title":
+            memoData[chatId].title = text;
+            memoData[chatId].step = "content";
             await ctx.reply("Введіть текст записки:");
             break;
-        case "text":
-            memoData[chatId].text = text;
+        case "content":
+            memoData[chatId].content = text;
             await createDocument(chatId, ctx);
             await ctx.reply("Записка створена!");
             delete memoData[chatId];
@@ -295,13 +277,10 @@ bot.on("message:text", async (ctx) => {
         case "newReceiver":
             delete memoData[ctx.chat.id];
             try {
-                const response = await updateDocumentRequest(editFileId, { receiver: text });
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { receiver: text });
 
-                const contentDisposition = response.headers["content-disposition"];
-                const filename = decodeFilename(contentDisposition);
-
-                await ctx.reply(`Одержувача було змінено на «${text}»:`);
-                await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
             } catch (error) {
                 await ctx.reply(`Помилка при зміні одержувача на «${text}»`);
                 await ctx.reply(error);
@@ -311,13 +290,10 @@ bot.on("message:text", async (ctx) => {
         case "newTitle":
             delete memoData[ctx.chat.id];
             try {
-                const response = await updateDocumentRequest(editFileId, { title: text });
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { title: text });
 
-                const contentDisposition = response.headers["content-disposition"];
-                const filename = decodeFilename(contentDisposition);
-
-                await ctx.reply(`Назву було змінено на «${text}»:`);
-                await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
             } catch (error) {
                 await ctx.reply(`Помилка при зміні назви на «${text}»`);
                 await ctx.reply(error);
@@ -327,13 +303,10 @@ bot.on("message:text", async (ctx) => {
         case "newContent":
             delete memoData[ctx.chat.id];
             try {
-                const response = await updateDocumentRequest(editFileId, { content: text });
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { content: text });
 
-                const contentDisposition = response.headers["content-disposition"];
-                const filename = decodeFilename(contentDisposition);
-
-                await ctx.reply(`Текст було змінено на «${text}»:`);
-                await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
             } catch (error) {
                 await ctx.reply(`Помилка при зміні тексту на «${text}»`);
                 await ctx.reply(error);
