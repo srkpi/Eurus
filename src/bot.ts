@@ -1,102 +1,321 @@
-import axios from "axios";
+import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest } from "../api/api";
+import { decodeFilename, formatFilesList, changeFileType, changeFileProperties } from "../utils/utils";
 import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 
 const { BOT_TOKEN: token = "" } = process.env;
 export const bot = new Bot(token);
 
-//сховище для стоврення записки
+let isGetFile = false;
+let isDeleteNote = false;
+let isEditNote = false;
+
+//сховище для стоврення та зміни записки
 const memoData = {};
+
+// id для зміни файлу
+let editFileId = 0;
 
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+    isEditNote = false;
+    delete memoData[ctx.chat.id];
+
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createnote ");
 });
 
 bot.command("createnote", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+    isEditNote = false;
+    delete memoData[ctx.chat.id];
+
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
 
     await ctx.reply("Будь ласка, виберіть тип документу:", { reply_markup: keyboard });
     memoData[ctx.chat.id] = { step: "choose_type" };
 });
 
-bot.callbackQuery("service_note", async (ctx) => {
-    memoData[ctx.chat.id].type = "Службова записка";
-    memoData[ctx.chat.id].step = "recipient";
+bot.command("notelist", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+    isEditNote = false;
+    delete memoData[ctx.chat.id];
+
+    try {
+        const response = await fetchAllDocumentsRequest();
+        const responseData = response.data;
+
+        if (Array.isArray(responseData) && responseData.length === 0) {
+            await ctx.reply("Записів нема");
+        } else {
+            const formattedData = formatFilesList(responseData);
+
+            await ctx.reply(`${formattedData}`, {
+                parse_mode: "MarkdownV2",
+            });
+        }
+    } catch (error) {
+        await ctx.reply("Помилка при отриманні записів");
+        await ctx.reply(error);
+    }
+});
+
+bot.command("getfile", async (ctx) => {
+    isDeleteNote = false;
+    isEditNote = false;
+    delete memoData[ctx.chat.id];
+
+    isGetFile = true;
+    await ctx.reply("Введіть id файлу який ви хочете отримати:");
+});
+
+bot.command("editnote", async (ctx) => {
+    isGetFile = false;
+    isDeleteNote = false;
+    delete memoData[ctx.chat.id];
+
+    isEditNote = true;
+    await ctx.reply("Введіть id файлу який ви хочете змінити:");
+});
+
+bot.command("deletenote", async (ctx) => {
+    isGetFile = false;
+    isEditNote = false;
+    delete memoData[ctx.chat.id];
+
+    isDeleteNote = true;
+    await ctx.reply("Введіть id файлу який ви хочете видалити:");
+});
+
+bot.callbackQuery("service_memo", async (ctx) => {
+    memoData[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery("submission", async (ctx) => {
-    memoData[ctx.chat.id].type = "Подання";
-    memoData[ctx.chat.id].step = "recipient";
+    memoData[ctx.chat.id].type = "ПОДАННЯ";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
-    memoData[ctx.chat.id].type = "Звернення";
-    memoData[ctx.chat.id].step = "recipient";
+    memoData[ctx.chat.id].type = "ЗВЕРНЕННЯ";
+    memoData[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
-    await ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery("back", async (ctx) => {
+    const keyboard = new InlineKeyboard().text("Тип файлу", "type").text("Одержувача", "receiver").text("Назву", "title").text("Текст", "content");
+    await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
+});
+
+bot.callbackQuery("type", async (ctx) => {
+    const keyboard = new InlineKeyboard()
+        .text("Службова записка", "newServiceMemo")
+        .text("Подання", "newSubmission")
+        .text("Звернення", "newAppeal")
+        .text("Повернутись", "back");
+    await ctx.reply("Оберіть новий тип документу:", { reply_markup: keyboard });
+});
+
+bot.callbackQuery("newServiceMemo", async (ctx) => {
+    const serviceMemoString = "Службова записка";
+    try {
+        const { stringToReply, inputFile } = await changeFileType(editFileId, serviceMemoString);
+
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
+    } catch (error) {
+        await ctx.reply(`Помилка при зміні типу файлу на «${serviceMemoString}»`);
+        await ctx.reply(error);
+    }
+});
+
+bot.callbackQuery("newSubmission", async (ctx) => {
+    const submissionString = "Подання";
+    try {
+        const { stringToReply, inputFile } = await changeFileType(editFileId, submissionString);
+
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
+    } catch (error) {
+        await ctx.reply(`Помилка при зміні типу файлу на «${submissionString}»`);
+        await ctx.reply(error);
+    }
+});
+
+bot.callbackQuery("newAppeal", async (ctx) => {
+    const appealString = "Звернення";
+    try {
+        const { stringToReply, inputFile } = await changeFileType(editFileId, appealString);
+
+        await ctx.reply(stringToReply);
+        await ctx.replyWithDocument(inputFile);
+    } catch (error) {
+        await ctx.reply(`Помилка при зміні типу файлу на «${appealString}»`);
+        await ctx.reply(error);
+    }
+});
+
+bot.callbackQuery("receiver", async (ctx) => {
+    await ctx.reply("Введіть нового одержувача:");
+    memoData[ctx.chat.id] = { step: "newReceiver" };
+});
+
+bot.callbackQuery("title", async (ctx) => {
+    await ctx.reply("Введіть нову назву:");
+    memoData[ctx.chat.id] = { step: "newTitle" };
+});
+
+bot.callbackQuery("content", async (ctx) => {
+    await ctx.reply("Введіть новий текст:");
+    memoData[ctx.chat.id] = { step: "newContent" };
 });
 
 bot.on("message:text", async (ctx) => {
     const chatId = ctx.chat.id;
     const text = ctx.message.text;
 
-    function decodeFilename(contentDisposition) {
-        const match = contentDisposition.match(/filename\*?=['"]?([^;]*)['"]?/);
-        if (match && match[1]) {
-            return decodeURIComponent(match[1].replace(/UTF-8''/, ""));
-        }
-        return "unknown_filename";
-    }
-
     async function createDocument(chatId, ctx: Context) {
-        const { recipient, subject, text, type } = memoData[chatId];
+        const { receiver, title, content, type } = memoData[chatId];
 
         try {
-            const response = await axios.post(
-                "https://sr-kpi-api-development.up.railway.app/documents/service-note",
-                {
-                    receiver: recipient,
-                    title: subject,
-                    content: text,
-                    type: type,
-                },
-                {
-                    responseType: "arraybuffer",
-                },
-            );
+            const response = await createDocumentRequest({ receiver: receiver, title: title, content: content, type: type });
 
             const contentDisposition = response.headers["content-disposition"];
             const filename = decodeFilename(contentDisposition);
 
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
-            await ctx.reply(error);
             await ctx.reply("Помилка при створенні запису");
+            await ctx.reply(error);
+        }
+    }
+
+    if (isGetFile) {
+        isGetFile = false;
+
+        try {
+            const response = await fetchDocumentByIdRequest(text);
+
+            const contentDisposition = response.headers["content-disposition"];
+            const filename = decodeFilename(contentDisposition);
+
+            await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
+        } catch (error) {
+            await ctx.reply("Помилка при отриманні запису");
+        }
+    }
+
+    if (isEditNote) {
+        isEditNote = false;
+
+        editFileId = parseInt(text);
+
+        // Check if there is file with such id
+        try {
+            const response = await fetchAllDocumentsRequest();
+            const responseData = response.data;
+
+            if (Array.isArray(responseData) && responseData.length === 0) {
+                await ctx.reply("Записів нема");
+            } else {
+                if (!responseData.some((item) => item.id == text)) {
+                    const formattedData = formatFilesList(responseData);
+
+                    await ctx.reply(`Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:\n${formattedData}`, {
+                        parse_mode: "MarkdownV2",
+                    });
+
+                    isEditNote = true;
+                    return;
+                }
+            }
+        } catch (error) {
+            await ctx.reply("Помилка при перевірці id");
+            await ctx.reply(error);
+        }
+
+        const keyboard = new InlineKeyboard().text("Тип файлу", "type").text("Одержувача", "receiver").text("Назву", "title").text("Текст", "content");
+        await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
+    }
+
+    if (isDeleteNote) {
+        isDeleteNote = false;
+
+        try {
+            await api.delete(`/documents/note/${text}`);
+
+            await ctx.reply(`Файл №${text} було успішно видалено`);
+        } catch (error) {
+            await ctx.reply("Помилка при видаленні запису");
         }
     }
 
     if (!memoData[chatId]) return;
 
     switch (memoData[chatId].step) {
-        case "recipient":
-            memoData[chatId].recipient = text;
-            memoData[chatId].step = "subject";
+        case "receiver":
+            memoData[chatId].receiver = text;
+            memoData[chatId].step = "title";
             await ctx.reply("Введіть тему записки:");
             break;
-        case "subject":
-            memoData[chatId].subject = text;
-            memoData[chatId].step = "text";
+        case "title":
+            memoData[chatId].title = text;
+            memoData[chatId].step = "content";
             await ctx.reply("Введіть текст записки:");
             break;
-        case "text":
-            memoData[chatId].text = text;
+        case "content":
+            memoData[chatId].content = text;
             await createDocument(chatId, ctx);
             await ctx.reply("Записка створена!");
             delete memoData[chatId];
             break;
+        case "newReceiver":
+            delete memoData[ctx.chat.id];
+            try {
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { receiver: text });
+
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
+            } catch (error) {
+                await ctx.reply(`Помилка при зміні одержувача на «${text}»`);
+                await ctx.reply(error);
+            }
+
+            break;
+        case "newTitle":
+            delete memoData[ctx.chat.id];
+            try {
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { title: text });
+
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
+            } catch (error) {
+                await ctx.reply(`Помилка при зміні назви на «${text}»`);
+                await ctx.reply(error);
+            }
+
+            break;
+        case "newContent":
+            delete memoData[ctx.chat.id];
+            try {
+                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { content: text });
+
+                await ctx.reply(stringToReply);
+                await ctx.replyWithDocument(inputFile);
+            } catch (error) {
+                await ctx.reply(`Помилка при зміні тексту на «${text}»`);
+                await ctx.reply(error);
+            }
+
+            break;
     }
+});
+
+bot.catch((err) => {
+    console.error(`Error: ${err.error}`);
 });
