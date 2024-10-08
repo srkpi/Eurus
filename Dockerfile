@@ -9,6 +9,7 @@ RUN npm install
 COPY . .
 
 ARG BOT_TOKEN
-ENV BOT_TOKEN=${BOT_TOKEN}
+
+RUN BOT_TOKEN=$BOT_TOKEN
 
 CMD ["npm", "run", "dev"]

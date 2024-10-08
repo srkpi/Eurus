@@ -1,8 +1,10 @@
-import { api, fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest, deleteDocumentRequest } from "../api/api";
+import { fetchAllDocumentsRequest, fetchDocumentByIdRequest, createDocumentRequest, deleteDocumentRequest } from "../api/api";
 import { decodeFilename, formatFilesList, changeFileType, changeFileProperties } from "../utils/utils";
 import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
+import { config } from "dotenv";
+config();
 
-const { BOT_TOKEN: token = "" } = process.env;
+const token = process.env.BOT_TOKEN;
 export const bot = new Bot(token);
 
 let isGetFile = false;
