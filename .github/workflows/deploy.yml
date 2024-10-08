@@ -1,32 +1,35 @@
-name: Build and Push
+name: Deploy
 
 on:
   push:
     branches:
-      - main
+      - 'main'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-20.04
+    environment: Production
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - name: Build and push app Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: sckpi/eurus:latest
-          build-args:
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/eurus:latest
+          build-args: |
             BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
