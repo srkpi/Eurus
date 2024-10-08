@@ -32,4 +32,4 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/eurus:latest
           build-args: |
-            BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+            BOT_TOKEN=${{ vars.BOT_TOKEN }}
