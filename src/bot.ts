@@ -7,15 +7,34 @@ config();
 const token = process.env.BOT_TOKEN;
 export const bot = new Bot(token);
 
-let isGetFile = false;
-let isDeleteFile = false;
-let isEditFile = false;
+interface State {
+    step: string;
+    isDeleteFile: boolean;
+    isEditFile: boolean;
+    editFileId: number;
+    isGetFile: boolean;
+    receiver: string;
+    title: string;
+    content: string;
+    type: string;
+}
 
-//сховище для стоврення та зміни записки
-const memoData = {};
+//сховище для стоврення та зміни записки, відстежування стану
+const states: { [chatid: string]: State } = {};
 
-// id для зміни файлу
-let editFileId = 0;
+function clearState(chatId) {
+    states[chatId] = {
+        step: "",
+        isDeleteFile: false,
+        isEditFile: false,
+        editFileId: 0,
+        isGetFile: false,
+        receiver: "",
+        title: "",
+        content: "",
+        type: "",
+    };
+}
 
 const startDescription = "Перезапустити бота";
 const helpDescription = "Переглянути список команд";
@@ -37,10 +56,8 @@ bot.api.setMyCommands([
 
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createfile");
 });
@@ -58,22 +75,18 @@ bot.command("help", async (ctx) => {
 });
 
 bot.command("createfile", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
 
     await ctx.reply("Будь ласка, виберіть тип документу:", { reply_markup: keyboard });
-    memoData[ctx.chat.id] = { step: "choose_type" };
+    states[chatId].step = "choose_type";
 });
 
 bot.command("listfiles", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
     try {
         const response = await fetchAllDocumentsRequest();
@@ -95,47 +108,50 @@ bot.command("listfiles", async (ctx) => {
 });
 
 bot.command("getfile", async (ctx) => {
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
-    isGetFile = true;
+    states[chatId].isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
 bot.command("editfile", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
-    isEditFile = true;
+    states[chatId].isEditFile = true;
     await ctx.reply("Введіть id файлу який ви хочете змінити:");
 });
 
 bot.command("deletefile", async (ctx) => {
-    isGetFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    const chatId = ctx.chat.id;
+    clearState(chatId);
 
-    isDeleteFile = true;
+    states[chatId].isDeleteFile = true;
     await ctx.reply("Введіть id файлу який ви хочете видалити:");
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
-    memoData[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
-    memoData[ctx.chat.id].step = "receiver";
+    const chatId = ctx.chat.id;
+
+    states[chatId].type = "СЛУЖБОВА ЗАПИСКА";
+    states[chatId].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("submission", async (ctx) => {
-    memoData[ctx.chat.id].type = "ПОДАННЯ";
-    memoData[ctx.chat.id].step = "receiver";
+    const chatId = ctx.chat.id;
+
+    states[chatId].type = "ПОДАННЯ";
+    states[chatId].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
-    memoData[ctx.chat.id].type = "ЗВЕРНЕННЯ";
-    memoData[ctx.chat.id].step = "receiver";
+    const chatId = ctx.chat.id;
+
+    states[chatId].type = "ЗВЕРНЕННЯ";
+    states[chatId].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
@@ -154,9 +170,11 @@ bot.callbackQuery("type", async (ctx) => {
 });
 
 bot.callbackQuery("newServiceMemo", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     const serviceMemoString = "Службова записка";
     try {
-        const { stringToReply, inputFile } = await changeFileType(editFileId, serviceMemoString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, serviceMemoString);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
@@ -167,9 +185,11 @@ bot.callbackQuery("newServiceMemo", async (ctx) => {
 });
 
 bot.callbackQuery("newSubmission", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     const submissionString = "Подання";
     try {
-        const { stringToReply, inputFile } = await changeFileType(editFileId, submissionString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, submissionString);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
@@ -180,9 +200,11 @@ bot.callbackQuery("newSubmission", async (ctx) => {
 });
 
 bot.callbackQuery("newAppeal", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     const appealString = "Звернення";
     try {
-        const { stringToReply, inputFile } = await changeFileType(editFileId, appealString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, appealString);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
@@ -193,18 +215,24 @@ bot.callbackQuery("newAppeal", async (ctx) => {
 });
 
 bot.callbackQuery("receiver", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     await ctx.reply("Введіть нового одержувача:");
-    memoData[ctx.chat.id] = { step: "newReceiver" };
+    states[chatId].step = "newReceiver";
 });
 
 bot.callbackQuery("title", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     await ctx.reply("Введіть нову назву:");
-    memoData[ctx.chat.id] = { step: "newTitle" };
+    states[chatId].step = "newTitle";
 });
 
 bot.callbackQuery("content", async (ctx) => {
+    const chatId = ctx.chat.id;
+
     await ctx.reply("Введіть новий текст:");
-    memoData[ctx.chat.id] = { step: "newContent" };
+    states[chatId].step = "newContent";
 });
 
 bot.on("message:text", async (ctx) => {
@@ -212,7 +240,7 @@ bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
 
     async function createDocument(chatId, ctx: Context) {
-        const { receiver, title, content, type } = memoData[chatId];
+        const { receiver, title, content, type } = states[chatId];
 
         try {
             const response = await createDocumentRequest({ receiver: receiver, title: title, content: content, type: type });
@@ -227,8 +255,8 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (isGetFile) {
-        isGetFile = false;
+    if (states[chatId].isGetFile) {
+        states[chatId].isGetFile = false;
 
         try {
             const response = await fetchDocumentByIdRequest(text);
@@ -242,10 +270,10 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (isEditFile) {
-        isEditFile = false;
+    if (states[chatId].isEditFile) {
+        states[chatId].isEditFile = false;
 
-        editFileId = parseInt(text);
+        states[chatId].editFileId = parseInt(text);
 
         // Check if there is file with such id
         try {
@@ -262,7 +290,7 @@ bot.on("message:text", async (ctx) => {
                         parse_mode: "MarkdownV2",
                     });
 
-                    isEditFile = true;
+                    states[chatId].isEditFile = true;
                     return;
                 }
             }
@@ -275,8 +303,8 @@ bot.on("message:text", async (ctx) => {
         await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
     }
 
-    if (isDeleteFile) {
-        isDeleteFile = false;
+    if (states[chatId].isDeleteFile) {
+        states[chatId].isDeleteFile = false;
 
         try {
             await deleteDocumentRequest(text);
@@ -287,29 +315,29 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (!memoData[chatId]) return;
+    if (!states[chatId]) return;
 
-    switch (memoData[chatId].step) {
+    switch (states[chatId].step) {
         case "receiver":
-            memoData[chatId].receiver = text;
-            memoData[chatId].step = "title";
+            states[chatId].receiver = text;
+            states[chatId].step = "title";
             await ctx.reply("Введіть тему записки:");
             break;
         case "title":
-            memoData[chatId].title = text;
-            memoData[chatId].step = "content";
+            states[chatId].title = text;
+            states[chatId].step = "content";
             await ctx.reply("Введіть текст записки:");
             break;
         case "content":
-            memoData[chatId].content = text;
+            states[chatId].content = text;
             await createDocument(chatId, ctx);
             await ctx.reply("Записка створена!");
-            delete memoData[chatId];
+            clearState(chatId);
             break;
         case "newReceiver":
-            delete memoData[ctx.chat.id];
+            clearState(chatId);
             try {
-                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { receiver: text });
+                const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { receiver: text });
 
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
@@ -320,9 +348,9 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newTitle":
-            delete memoData[ctx.chat.id];
+            clearState(chatId);
             try {
-                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { title: text });
+                const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { title: text });
 
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
@@ -333,9 +361,9 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newContent":
-            delete memoData[ctx.chat.id];
+            clearState(chatId);
             try {
-                const { stringToReply, inputFile } = await changeFileProperties(editFileId, { content: text });
+                const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { content: text });
 
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
