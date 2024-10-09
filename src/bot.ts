@@ -36,6 +36,47 @@ function clearState(chatId) {
     };
 }
 
+const messages = {
+    start: "Вітаю! \nЦей Бот допомагає створити службову записку, подання або звернення. Для створення натисніть /createfile",
+    selectDocumentType: "Будь ласка, виберіть тип документа:",
+    serviceMemo: "Службова записка",
+    submission: "Подання",
+    appeal: "Звернення",
+    noEntries: "Файлів нема",
+    errorRetrievingRecords: "Помилка при отриманні файлів",
+    errorChangingFileType: "Помилка при зміні типу файлу на",
+    errorCreatingRecord: "Помилка при створенні файлу",
+    errorRetrievingRecord: "Помилка при отриманні файлу",
+    errorCheckingId: "Помилка при перевірці id",
+    errorDeletingRecord: "Помилка при видаленні файлу",
+    errorChangingReceiver: "Помилка при зміні одержувача на",
+    errorChangingTitle: "Помилка при зміні назви на",
+    errorChangingContent: "Помилка при зміні тексту на",
+    enterIdFileToRetrieve: "Введіть id файлу, який ви хочете отримати:",
+    enterIdFileToEdit: "Введіть id файлу, який ви хочете змінити:",
+    enterIdFileToDelete: "Введіть id файлу, який ви хочете видалити:",
+    enterReceiver: "Введіть одержувача:",
+    whatDoYouWantToChange: "Що ви хочете змінити?",
+    fileType: "Тип файлу",
+    receiver: "Одержувача",
+    title: "Назву",
+    content: "Текст",
+    back: "Повернутись",
+    selectNewFileType: "Оберіть новий тип файлу:",
+    enterNewReceiver: "Введіть нового одержувача:",
+    enterNewTitle: "Введіть нову назву:",
+    enterNewContent: "Введіть новий текст:",
+    enterValidId: "Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:",
+    fileNo: "Файл №",
+    wasSuccessfullyDeleted: "було успішно видалено",
+    enterTitle: "Введіть тему файлу:",
+    enterContent: "Введіть текст файлу:",
+    memoCreated: "Файл створено!",
+};
+
+const messagesInOneString = Object.values(messages).join("\n");
+console.log(messagesInOneString);
+
 const startDescription = "Перезапустити бота";
 const helpDescription = "Переглянути список команд";
 const createfileDescription = "Створити файл";
@@ -59,7 +100,7 @@ bot.command("start", async (ctx) => {
     const chatId = ctx.chat.id;
     clearState(chatId);
 
-    await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createfile");
+    await ctx.reply(messages.start);
 });
 
 bot.command("help", async (ctx) => {
@@ -78,9 +119,9 @@ bot.command("createfile", async (ctx) => {
     const chatId = ctx.chat.id;
     clearState(chatId);
 
-    const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
+    const keyboard = new InlineKeyboard().text(messages.serviceMemo, "service_memo").text(messages.submission, "submission").text(messages.appeal, "appeal");
 
-    await ctx.reply("Будь ласка, виберіть тип документу:", { reply_markup: keyboard });
+    await ctx.reply(messages.selectDocumentType, { reply_markup: keyboard });
     states[chatId].step = "choose_type";
 });
 
@@ -93,7 +134,7 @@ bot.command("listfiles", async (ctx) => {
         const responseData = response.data;
 
         if (Array.isArray(responseData) && responseData.length === 0) {
-            await ctx.reply("Записів нема");
+            await ctx.reply(messages.noEntries);
         } else {
             const formattedData = formatFilesList(responseData);
 
@@ -102,7 +143,7 @@ bot.command("listfiles", async (ctx) => {
             });
         }
     } catch (error) {
-        await ctx.reply("Помилка при отриманні записів");
+        await ctx.reply(messages.errorRetrievingRecords);
         await ctx.reply(error);
     }
 });
@@ -112,7 +153,7 @@ bot.command("getfile", async (ctx) => {
     clearState(chatId);
 
     states[chatId].isGetFile = true;
-    await ctx.reply("Введіть id файлу який ви хочете отримати:");
+    await ctx.reply(messages.enterIdFileToRetrieve);
 });
 
 bot.command("editfile", async (ctx) => {
@@ -120,7 +161,7 @@ bot.command("editfile", async (ctx) => {
     clearState(chatId);
 
     states[chatId].isEditFile = true;
-    await ctx.reply("Введіть id файлу який ви хочете змінити:");
+    await ctx.reply(messages.enterIdFileToEdit);
 });
 
 bot.command("deletefile", async (ctx) => {
@@ -128,58 +169,61 @@ bot.command("deletefile", async (ctx) => {
     clearState(chatId);
 
     states[chatId].isDeleteFile = true;
-    await ctx.reply("Введіть id файлу який ви хочете видалити:");
+    await ctx.reply(messages.enterIdFileToDelete);
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    states[chatId].type = "СЛУЖБОВА ЗАПИСКА";
+    states[chatId].type = messages.serviceMemo.toUpperCase();
     states[chatId].step = "receiver";
-    await ctx.reply("Введіть одержувача:");
+    await ctx.reply(messages.enterReceiver);
 });
 
 bot.callbackQuery("submission", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    states[chatId].type = "ПОДАННЯ";
+    states[chatId].type = messages.submission.toUpperCase();
     states[chatId].step = "receiver";
-    await ctx.reply("Введіть одержувача:");
+    await ctx.reply(messages.enterReceiver);
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    states[chatId].type = "ЗВЕРНЕННЯ";
+    states[chatId].type = messages.appeal.toUpperCase();
     states[chatId].step = "receiver";
-    await ctx.reply("Введіть одержувача:");
+    await ctx.reply(messages.enterReceiver);
 });
 
 bot.callbackQuery("back", async (ctx) => {
-    const keyboard = new InlineKeyboard().text("Тип файлу", "type").text("Одержувача", "receiver").text("Назву", "title").text("Текст", "content");
-    await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
+    const keyboard = new InlineKeyboard()
+        .text(messages.fileType, "type")
+        .text(messages.receiver, "receiver")
+        .text(messages.title, "title")
+        .text(messages.content, "content");
+    await ctx.reply(messages.whatDoYouWantToChange, { reply_markup: keyboard });
 });
 
 bot.callbackQuery("type", async (ctx) => {
     const keyboard = new InlineKeyboard()
-        .text("Службова записка", "newServiceMemo")
-        .text("Подання", "newSubmission")
-        .text("Звернення", "newAppeal")
-        .text("Повернутись", "back");
-    await ctx.reply("Оберіть новий тип документу:", { reply_markup: keyboard });
+        .text(messages.serviceMemo, "newServiceMemo")
+        .text(messages.submission, "newSubmission")
+        .text(messages.appeal, "newAppeal")
+        .text(messages.back, "back");
+    await ctx.reply(messages.selectNewFileType, { reply_markup: keyboard });
 });
 
 bot.callbackQuery("newServiceMemo", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    const serviceMemoString = "Службова записка";
     try {
-        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, serviceMemoString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, messages.serviceMemo);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply(`Помилка при зміні типу файлу на «${serviceMemoString}»`);
+        await ctx.reply(`${messages.errorChangingFileType} «${messages.serviceMemo}»`);
         await ctx.reply(error);
     }
 });
@@ -187,14 +231,13 @@ bot.callbackQuery("newServiceMemo", async (ctx) => {
 bot.callbackQuery("newSubmission", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    const submissionString = "Подання";
     try {
-        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, submissionString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, messages.submission);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply(`Помилка при зміні типу файлу на «${submissionString}»`);
+        await ctx.reply(`${messages.errorChangingFileType} «${messages.submission}»`);
         await ctx.reply(error);
     }
 });
@@ -202,14 +245,13 @@ bot.callbackQuery("newSubmission", async (ctx) => {
 bot.callbackQuery("newAppeal", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    const appealString = "Звернення";
     try {
-        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, appealString);
+        const { stringToReply, inputFile } = await changeFileType(states[chatId].editFileId, messages.appeal);
 
         await ctx.reply(stringToReply);
         await ctx.replyWithDocument(inputFile);
     } catch (error) {
-        await ctx.reply(`Помилка при зміні типу файлу на «${appealString}»`);
+        await ctx.reply(`${messages.errorChangingFileType} «${messages.appeal}»`);
         await ctx.reply(error);
     }
 });
@@ -217,21 +259,21 @@ bot.callbackQuery("newAppeal", async (ctx) => {
 bot.callbackQuery("receiver", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    await ctx.reply("Введіть нового одержувача:");
+    await ctx.reply(messages.enterNewReceiver);
     states[chatId].step = "newReceiver";
 });
 
 bot.callbackQuery("title", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    await ctx.reply("Введіть нову назву:");
+    await ctx.reply(messages.enterNewTitle);
     states[chatId].step = "newTitle";
 });
 
 bot.callbackQuery("content", async (ctx) => {
     const chatId = ctx.chat.id;
 
-    await ctx.reply("Введіть новий текст:");
+    await ctx.reply(messages.enterNewContent);
     states[chatId].step = "newContent";
 });
 
@@ -250,7 +292,7 @@ bot.on("message:text", async (ctx) => {
 
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
-            await ctx.reply("Помилка при створенні запису");
+            await ctx.reply(messages.errorCreatingRecord);
             await ctx.reply(error);
         }
     }
@@ -266,7 +308,7 @@ bot.on("message:text", async (ctx) => {
 
             await ctx.replyWithDocument(new InputFile(Buffer.from(response.data), filename));
         } catch (error) {
-            await ctx.reply("Помилка при отриманні запису");
+            await ctx.reply(messages.errorRetrievingRecord);
         }
     }
 
@@ -281,12 +323,12 @@ bot.on("message:text", async (ctx) => {
             const responseData = response.data;
 
             if (Array.isArray(responseData) && responseData.length === 0) {
-                await ctx.reply("Записів нема");
+                await ctx.reply(messages.noEntries);
             } else {
                 if (!responseData.some((item) => item.id == text)) {
                     const formattedData = formatFilesList(responseData);
 
-                    await ctx.reply(`Такого файлу не існує\\. Введіть правильний id одного з цих файлів\\:\n${formattedData}`, {
+                    await ctx.reply(`${messages.enterValidId}\n${formattedData}`, {
                         parse_mode: "MarkdownV2",
                     });
 
@@ -295,12 +337,16 @@ bot.on("message:text", async (ctx) => {
                 }
             }
         } catch (error) {
-            await ctx.reply("Помилка при перевірці id");
+            await ctx.reply(messages.errorCheckingId);
             await ctx.reply(error);
         }
 
-        const keyboard = new InlineKeyboard().text("Тип файлу", "type").text("Одержувача", "receiver").text("Назву", "title").text("Текст", "content");
-        await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
+        const keyboard = new InlineKeyboard()
+            .text(messages.fileType, "type")
+            .text(messages.receiver, "receiver")
+            .text(messages.title, "title")
+            .text(messages.content, "content");
+        await ctx.reply(messages.whatDoYouWantToChange, { reply_markup: keyboard });
     }
 
     if (states[chatId].isDeleteFile) {
@@ -309,9 +355,9 @@ bot.on("message:text", async (ctx) => {
         try {
             await deleteDocumentRequest(text);
 
-            await ctx.reply(`Файл №${text} було успішно видалено`);
+            await ctx.reply(`${messages.fileNo}${text} ${messages.wasSuccessfullyDeleted}`);
         } catch (error) {
-            await ctx.reply("Помилка при видаленні запису");
+            await ctx.reply(messages.errorDeletingRecord);
         }
     }
 
@@ -321,17 +367,17 @@ bot.on("message:text", async (ctx) => {
         case "receiver":
             states[chatId].receiver = text;
             states[chatId].step = "title";
-            await ctx.reply("Введіть тему записки:");
+            await ctx.reply(messages.enterTitle);
             break;
         case "title":
             states[chatId].title = text;
             states[chatId].step = "content";
-            await ctx.reply("Введіть текст записки:");
+            await ctx.reply(messages.enterContent);
             break;
         case "content":
             states[chatId].content = text;
             await createDocument(chatId, ctx);
-            await ctx.reply("Записка створена!");
+            await ctx.reply(messages.memoCreated);
             clearState(chatId);
             break;
         case "newReceiver":
@@ -342,7 +388,7 @@ bot.on("message:text", async (ctx) => {
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
             } catch (error) {
-                await ctx.reply(`Помилка при зміні одержувача на «${text}»`);
+                await ctx.reply(`${messages.errorChangingReceiver} «${text}»`);
                 await ctx.reply(error);
             }
 
@@ -355,7 +401,7 @@ bot.on("message:text", async (ctx) => {
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
             } catch (error) {
-                await ctx.reply(`Помилка при зміні назви на «${text}»`);
+                await ctx.reply(`${messages.errorChangingTitle} «${text}»`);
                 await ctx.reply(error);
             }
 
@@ -368,7 +414,7 @@ bot.on("message:text", async (ctx) => {
                 await ctx.reply(stringToReply);
                 await ctx.replyWithDocument(inputFile);
             } catch (error) {
-                await ctx.reply(`Помилка при зміні тексту на «${text}»`);
+                await ctx.reply(`${messages.errorChangingContent} «${text}»`);
                 await ctx.reply(error);
             }
 
