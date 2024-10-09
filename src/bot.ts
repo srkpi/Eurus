@@ -20,7 +20,7 @@ interface State {
 //сховище для стоврення та зміни записки, відстежування стану
 const states: { [chatid: string]: State } = {};
 
-function clearStates(chatId) {
+function clearState(chatId) {
     states[chatId] = {
         step: "",
         isDeleteFile: false,
@@ -55,7 +55,7 @@ bot.api.setMyCommands([
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createfile");
 });
@@ -74,7 +74,7 @@ bot.command("help", async (ctx) => {
 
 bot.command("createfile", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
 
@@ -84,7 +84,7 @@ bot.command("createfile", async (ctx) => {
 
 bot.command("listfiles", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     try {
         const response = await fetchAllDocumentsRequest();
@@ -107,7 +107,7 @@ bot.command("listfiles", async (ctx) => {
 
 bot.command("getfile", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     states[chatId].isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
@@ -115,7 +115,7 @@ bot.command("getfile", async (ctx) => {
 
 bot.command("editfile", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     states[chatId].isEditFile = true;
     await ctx.reply("Введіть id файлу який ви хочете змінити:");
@@ -123,7 +123,7 @@ bot.command("editfile", async (ctx) => {
 
 bot.command("deletefile", async (ctx) => {
     const chatId = ctx.chat.id;
-    clearStates(chatId);
+    clearState(chatId);
 
     states[chatId].isDeleteFile = true;
     await ctx.reply("Введіть id файлу який ви хочете видалити:");
@@ -330,10 +330,10 @@ bot.on("message:text", async (ctx) => {
             states[chatId].content = text;
             await createDocument(chatId, ctx);
             await ctx.reply("Записка створена!");
-            clearStates(chatId);
+            clearState(chatId);
             break;
         case "newReceiver":
-            clearStates(chatId);
+            clearState(chatId);
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { receiver: text });
 
@@ -346,7 +346,7 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newTitle":
-            clearStates(chatId);
+            clearState(chatId);
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { title: text });
 
@@ -359,7 +359,7 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newContent":
-            clearStates(chatId);
+            clearState(chatId);
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(states[chatId].editFileId, { content: text });
 
