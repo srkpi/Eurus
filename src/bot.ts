@@ -5,12 +5,8 @@ import { Bot, Context, InputFile, InlineKeyboard } from "grammy";
 const { BOT_TOKEN: token = "" } = process.env;
 export const bot = new Bot(token);
 
-let isGetFile = false;
-let isDeleteFile = false;
-let isEditFile = false;
-
-//сховище для стоврення та зміни записки
-const memoData = {};
+//сховище для стоврення та зміни записки, відстежування стану
+const state = {};
 
 // id для зміни файлу
 let editFileId = 0;
@@ -35,10 +31,7 @@ bot.api.setMyCommands([
 
 // команда для Вітаннячка
 bot.command("start", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
     await ctx.reply("Вітаю! \nЦей Бот допомагає створити службову записку. Для створення натисніть /createfile");
 });
@@ -56,22 +49,16 @@ bot.command("help", async (ctx) => {
 });
 
 bot.command("createfile", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
     const keyboard = new InlineKeyboard().text("Службова записка", "service_memo").text("Подання", "submission").text("Звернення", "appeal");
 
     await ctx.reply("Будь ласка, виберіть тип документу:", { reply_markup: keyboard });
-    memoData[ctx.chat.id] = { step: "choose_type" };
+    state[ctx.chat.id].step = "choose_type";
 });
 
 bot.command("listfiles", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
     try {
         const response = await fetchAllDocumentsRequest();
@@ -93,47 +80,41 @@ bot.command("listfiles", async (ctx) => {
 });
 
 bot.command("getfile", async (ctx) => {
-    isDeleteFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
-    isGetFile = true;
+    state[ctx.chat.id].isGetFile = true;
     await ctx.reply("Введіть id файлу який ви хочете отримати:");
 });
 
 bot.command("editfile", async (ctx) => {
-    isGetFile = false;
-    isDeleteFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
-    isEditFile = true;
+    state[ctx.chat.id].isEditFile = true;
     await ctx.reply("Введіть id файлу який ви хочете змінити:");
 });
 
 bot.command("deletefile", async (ctx) => {
-    isGetFile = false;
-    isEditFile = false;
-    delete memoData[ctx.chat.id];
+    state[ctx.chat.id] = {};
 
-    isDeleteFile = true;
+    state[ctx.chat.id].isDeleteFile = true;
     await ctx.reply("Введіть id файлу який ви хочете видалити:");
 });
 
 bot.callbackQuery("service_memo", async (ctx) => {
-    memoData[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
-    memoData[ctx.chat.id].step = "receiver";
+    state[ctx.chat.id].type = "СЛУЖБОВА ЗАПИСКА";
+    state[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("submission", async (ctx) => {
-    memoData[ctx.chat.id].type = "ПОДАННЯ";
-    memoData[ctx.chat.id].step = "receiver";
+    state[ctx.chat.id].type = "ПОДАННЯ";
+    state[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
 bot.callbackQuery("appeal", async (ctx) => {
-    memoData[ctx.chat.id].type = "ЗВЕРНЕННЯ";
-    memoData[ctx.chat.id].step = "receiver";
+    state[ctx.chat.id].type = "ЗВЕРНЕННЯ";
+    state[ctx.chat.id].step = "receiver";
     await ctx.reply("Введіть одержувача:");
 });
 
@@ -192,17 +173,17 @@ bot.callbackQuery("newAppeal", async (ctx) => {
 
 bot.callbackQuery("receiver", async (ctx) => {
     await ctx.reply("Введіть нового одержувача:");
-    memoData[ctx.chat.id] = { step: "newReceiver" };
+    state[ctx.chat.id].step = "newReceiver";
 });
 
 bot.callbackQuery("title", async (ctx) => {
     await ctx.reply("Введіть нову назву:");
-    memoData[ctx.chat.id] = { step: "newTitle" };
+    state[ctx.chat.id].step = "newTitle";
 });
 
 bot.callbackQuery("content", async (ctx) => {
     await ctx.reply("Введіть новий текст:");
-    memoData[ctx.chat.id] = { step: "newContent" };
+    state[ctx.chat.id].step = "newContent";
 });
 
 bot.on("message:text", async (ctx) => {
@@ -210,7 +191,7 @@ bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
 
     async function createDocument(chatId, ctx: Context) {
-        const { receiver, title, content, type } = memoData[chatId];
+        const { receiver, title, content, type } = state[chatId];
 
         try {
             const response = await createDocumentRequest({ receiver: receiver, title: title, content: content, type: type });
@@ -225,8 +206,8 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (isGetFile) {
-        isGetFile = false;
+    if (state[ctx.chat.id].isGetFile) {
+        state[ctx.chat.id].isGetFile = false;
 
         try {
             const response = await fetchDocumentByIdRequest(text);
@@ -240,8 +221,8 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (isEditFile) {
-        isEditFile = false;
+    if (state[ctx.chat.id].isEditFile) {
+        state[ctx.chat.id].isEditFile = false;
 
         editFileId = parseInt(text);
 
@@ -260,7 +241,7 @@ bot.on("message:text", async (ctx) => {
                         parse_mode: "MarkdownV2",
                     });
 
-                    isEditFile = true;
+                    state[ctx.chat.id].isEditFile = true;
                     return;
                 }
             }
@@ -273,8 +254,8 @@ bot.on("message:text", async (ctx) => {
         await ctx.reply("Що ви хочете змінити?", { reply_markup: keyboard });
     }
 
-    if (isDeleteFile) {
-        isDeleteFile = false;
+    if (state[ctx.chat.id].isDeleteFile) {
+        state[ctx.chat.id].isDeleteFile = false;
 
         try {
             await deleteDocumentRequest(text);
@@ -285,27 +266,27 @@ bot.on("message:text", async (ctx) => {
         }
     }
 
-    if (!memoData[chatId]) return;
+    if (!state[chatId]) return;
 
-    switch (memoData[chatId].step) {
+    switch (state[chatId].step) {
         case "receiver":
-            memoData[chatId].receiver = text;
-            memoData[chatId].step = "title";
+            state[chatId].receiver = text;
+            state[chatId].step = "title";
             await ctx.reply("Введіть тему записки:");
             break;
         case "title":
-            memoData[chatId].title = text;
-            memoData[chatId].step = "content";
+            state[chatId].title = text;
+            state[chatId].step = "content";
             await ctx.reply("Введіть текст записки:");
             break;
         case "content":
-            memoData[chatId].content = text;
+            state[chatId].content = text;
             await createDocument(chatId, ctx);
             await ctx.reply("Записка створена!");
-            delete memoData[chatId];
+            state[ctx.chat.id] = {};
             break;
         case "newReceiver":
-            delete memoData[ctx.chat.id];
+            state[ctx.chat.id] = {};
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(editFileId, { receiver: text });
 
@@ -318,7 +299,7 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newTitle":
-            delete memoData[ctx.chat.id];
+            state[ctx.chat.id] = {};
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(editFileId, { title: text });
 
@@ -331,7 +312,7 @@ bot.on("message:text", async (ctx) => {
 
             break;
         case "newContent":
-            delete memoData[ctx.chat.id];
+            state[ctx.chat.id] = {};
             try {
                 const { stringToReply, inputFile } = await changeFileProperties(editFileId, { content: text });
 
